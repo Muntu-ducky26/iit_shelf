@@ -1,0 +1,14 @@
+{
+  "name": "iit-shelf-workspace",
+  "private": true,
+  "scripts": {
+    "postinstall": "npm --prefix \"./web frontend\" install",
+    "install:all": "npm --prefix \"./web frontend\" install",
+    "dev": "node ./scripts/dev_all.js",
+    "dev:backend": "node ./scripts/dev_backend.js",
+    "dev:web": "npm --prefix \"./web frontend\" run dev -- --host 0.0.0.0 --port 5173"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
