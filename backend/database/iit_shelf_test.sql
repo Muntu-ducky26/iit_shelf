@@ -115,7 +115,6 @@ CREATE TABLE Books (
   edition VARCHAR(50),
   description TEXT,
   pic_path VARCHAR(500),
-  pdf_url VARCHAR(500) NULL,
   INDEX idx_books_title (title),
   INDEX idx_books_author (author),
   INDEX idx_books_category (category)

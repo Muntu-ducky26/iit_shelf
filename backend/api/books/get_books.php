@@ -152,15 +152,20 @@ while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
         }
     }
     
-    // Check for PDF
-    $pdfStmt = $db->prepare('SELECT file_path FROM Digital_Resources WHERE isbn = :isbn AND resource_type = "PDF"');
+    // Check for PDF from Digital_Resources only (single source of truth)
+    $pdfStmt = $db->prepare('SELECT file_path FROM Digital_Resources WHERE isbn = :isbn AND resource_type = "PDF" ORDER BY resource_id DESC LIMIT 1');
     $pdfStmt->execute([':isbn' => $row['isbn']]);
     $pdfRow = $pdfStmt->fetch(PDO::FETCH_ASSOC);
     
-    // Always serve PDFs through download endpoint so paths stay consistent
+    // External links are returned directly; local paths are served through download endpoint
     $pdfUrl = null;
     if ($pdfRow && !empty($pdfRow['file_path'])) {
-        $pdfUrl = 'http://localhost:8000/api/books/download_pdf.php?isbn=' . urlencode($row['isbn']);
+        $filePath = trim($pdfRow['file_path']);
+        if (preg_match('/^https?:\/\//i', $filePath)) {
+            $pdfUrl = $filePath;
+        } else {
+            $pdfUrl = 'http://localhost:8000/api/books/download_pdf.php?isbn=' . urlencode($row['isbn']);
+        }
     }
     
     $books[] = [

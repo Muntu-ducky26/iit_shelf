@@ -25,7 +25,7 @@ try {
     $database = new Database();
     $db = $database->getConnection();
 
-    // Get the PDF URL or file path from Digital_Resources or Books table
+    // Get the PDF URL or file path from Digital_Resources only (keyed by ISBN)
     $stmt = $db->prepare('
         SELECT file_path FROM Digital_Resources 
         WHERE isbn = :isbn AND resource_type = "PDF"
@@ -35,23 +35,14 @@ try {
     $resource = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$resource || !$resource['file_path']) {
-        // Try getting from Books table pdf_url
-        $stmt = $db->prepare('SELECT pdf_url FROM Books WHERE isbn = :isbn');
-        $stmt->execute([':isbn' => $isbn]);
-        $book = $stmt->fetch(PDO::FETCH_ASSOC);
-        
-        if (!$book || !$book['pdf_url']) {
-            http_response_code(404);
-            echo json_encode([
-                'success' => false,
-                'message' => 'No PDF found for this book'
-            ]);
-            exit;
-        }
-        $filePath = $book['pdf_url'];
-    } else {
-        $filePath = $resource['file_path'];
+        http_response_code(404);
+        echo json_encode([
+            'success' => false,
+            'message' => 'No PDF found for this book'
+        ]);
+        exit;
     }
+    $filePath = $resource['file_path'];
 
     // If it's a URL, redirect to it
     if (preg_match('/^https?:\/\//', $filePath)) {

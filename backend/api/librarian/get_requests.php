@@ -71,20 +71,26 @@ try {
     if ($type === 'return') {
         // Derive pending return requests from Notifications (type: ReturnRequestPending)
         // Parse transaction id from message and join to Approved_Transactions for details
-        $notifSql = "SELECT user_email, message, sent_at
-                     FROM Notifications
-                     WHERE type = 'ReturnRequestPending'
-                     ORDER BY sent_at DESC";
+        $notifSql = "SELECT n.user_email, n.message, n.sent_at
+                     FROM Notifications n
+                     JOIN Users u ON u.email = n.user_email
+                     WHERE n.type = 'ReturnRequestPending'
+                       AND LOWER(u.role) = 'librarian'
+                     ORDER BY n.sent_at DESC";
         $notifStmt = $db->prepare($notifSql);
         $notifStmt->execute();
         $notifs = $notifStmt->fetchAll(PDO::FETCH_ASSOC);
 
         $items = [];
+        $seenTransactionIds = [];
         foreach ($notifs as $n) {
             if (!preg_match('/Transaction\s+#(\d+)/', $n['message'], $m)) {
                 continue;
             }
             $tid = (int)$m[1];
+            if (isset($seenTransactionIds[$tid])) {
+                continue;
+            }
                  $tx = $db->prepare("SELECT at.transaction_id, at.copy_id, at.issue_date, at.due_date, tr.isbn, 
                                        u.name, u.email, b.title, b.author,
                                        GREATEST(DATEDIFF(NOW(), at.due_date), 0) AS days_overdue
@@ -97,6 +103,7 @@ try {
             $tx->execute([':tid' => $tid]);
             $row = $tx->fetch(PDO::FETCH_ASSOC);
             if (!$row) continue;
+            $seenTransactionIds[$tid] = true;
             $row['requested_at'] = $n['sent_at'];
             $row['return_requested_at'] = $n['sent_at'];
             $row['copy_id'] = $row['copy_id'] ?? '';
